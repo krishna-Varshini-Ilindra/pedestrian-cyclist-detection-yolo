@@ -36,7 +36,7 @@ This project compares three pretrained YOLO detectors (YOLOv8m, YOLOv9m, YOLOv10
 | Ultralytics 8.4.67 | YOLOv8/v9/v10 models |
 | Albumentations | Hard condition augmentations |
 | OpenCV | Image processing |
-| ByteTrack | Multi-object pedestrian tracking |
+| ByteTrack | Multi-object tracking (pipeline demo) |
 | Pandas / Matplotlib / Seaborn | Analysis & visualization |
 | Google Colab T4 GPU | Training & inference |
 
@@ -196,9 +196,7 @@ This project directly extends Prof. Banafsheh Rekabdar's
 active funded research at Portland State University:
 
 **Project:** Automated Detection, Tracking, and Safety Analysis 
-of Pedestrians and Cyclists Using YOLOv9  
-**Funding:** $140,000 UTC  
-**Status:** In Progress (End: August 2026)  
+of Pedestrians and Cyclists Using YOLOv9    
 **Link:** https://trec.pdx.edu/research/project/1626
 
 | Her Project | This Project Adds |
