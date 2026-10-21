@@ -138,7 +138,7 @@ Detections fell by only about 9–10% under rain and about 0–2% under occlusio
 **Finding 4 — Newer did not mean faster or more detections here.**  
 YOLOv8m had the lowest median inference time and the most detections in most conditions, despite having the most parameters. YOLOv10m showed no meaningful speed advantage over YOLOv8m in practice despite having 36% fewer parameters.
 
-**Finding 4 — The fine-tuning pipeline works end to end.**
+**Finding 5 — The fine-tuning pipeline works end to end.**
 A 10-epoch run produced mAP@50 of 0.375 on 40 validation images (evaluated on best.pt). Comparing against the pretrained model on the same split is the next step.
 
 ---
