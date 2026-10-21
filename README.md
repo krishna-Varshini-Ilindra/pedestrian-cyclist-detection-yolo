@@ -1,36 +1,29 @@
 # Pedestrian & Cyclist Detection Under Real-World Conditions
 ## Comparing YOLOv8 vs YOLOv9 vs YOLOv10 with Hard Condition Benchmarking
 
-> **Directly aligned with Prof. Banafsheh Rekabdar's active $140K funded 
-> research at Portland State University AI Lab:**
-> *"Automated Detection, Tracking, and Safety Analysis of Pedestrians 
-> and Cyclists Using YOLOv9"*
+> **Motivated by Prof. Banafsheh Rekabdar's active research at Portland State University: "Automated Detection, Tracking, and Safety Analysis of Pedestrians and Cyclists Using YOLOv9" (PSU TREC Project #1626, in progress)**
 
 ---
 
 ## Author
 **Krishna Varshini Ilindra**  
 MS in Computer Science — University of Bridgeport (GPA: 3.636)  
-Teaching Assistant — Computer Vision Course  
+Teaching Assistant — Computer Vision Course GitHub: github.com/krishna-Varshini-Ilindra 
 
 ---
 
 ## Project Goal
 
-This project compares three state-of-the-art YOLO object detection 
-models (YOLOv8m, YOLOv9m, YOLOv10m) for urban pedestrian detection 
-under five real-world conditions including clean, low-light, rain, 
-fog, and occlusion — directly extending the goals of Prof. Rekabdar's 
-ongoing funded research at PSU.
+This project compares three pretrained YOLO detectors (YOLOv8m, YOLOv9m, YOLOv10m) for pedestrian detection on clean images and under four simulated adverse conditions: low light, rain, fog, and occlusion. It also includes a small fine-tuning experiment and a ByteTrack tracking pipeline demo.
 
 ---
 
 ## Research Questions
 
-1. Which YOLO variant detects the most pedestrians on clean urban images?
-2. How does each model's performance degrade under hard conditions?
-3. Can fine-tuning on pedestrian-specific data improve detection accuracy?
-4. Does ByteTrack enable reliable unique pedestrian counting?
+1. How many pedestrians does each YOLO variant detect on clean images?
+2. How much does each model's detection output change under simulated adverse conditions?
+3. Can a short fine-tuning run on pedestrian-only labels be set up end to end?
+4. Can ByteTrack be integrated for pedestrian ID assignment?
 
 ---
 
@@ -51,11 +44,12 @@ ongoing funded research at PSU.
 
 ## Dataset
 
-- **COCO val2017** (proxy for EuroCity Persons dataset)
-- 200 images filtered for pedestrian presence
-- 80 categories, person = class 0
-- For full research: EuroCity Persons dataset 
-  (eurocity-dataset.tudelft.nl)
+- COCO val2017, filtered to images containing at least one person (2,693 of 5,000)
+- 200 images used for the clean baseline
+- 100 of those 200 images used for each adverse condition
+- Person = YOLO class 0 (COCO category_id 1)
+
+Note: For full research, replace with the EuroCity Persons dataset (eurocity-dataset.tudelft.nl) which is the dataset used in Prof. Rekabdar's project.
 
 ---
 
@@ -74,44 +68,49 @@ ongoing funded research at PSU.
 | Clean | Original images | Daytime street camera |
 | Low Light | Brightness -40-60% + noise | Night/dusk footage |
 | Rain | Heavy rain streak overlay | Rainy day camera |
-| Fog | White haze overlay | Foggy morning road |
-| Occlusion | Random black patches | Partially blocked view |
+| Fog | White haze overlay (coef 0.4-0.7)| Foggy morning road |
+| Occlusion | Random black patches (CoarseDropout) | Partially blocked view |
 
+Inference settings: conf = 0.25, IoU = 0.45, classes = [person].
+
+Note on the metric: The robustness comparison counts predicted person boxes per image. It does not compare predictions to ground-truth labels, so a change in detection count is a proxy for missed detections, not a measure of accuracy. See Limitations.
 ---
 
 ## Results
 
-### Baseline Detection (Clean Images)
-| Model | Total Detections | Avg Speed |
-|---|---|---|
-| YOLOv8m | 772 | 49.0ms |
-| YOLOv9m | 765 | 53.1ms |
-| YOLOv10m | 673 | 40.0ms |
+### Baseline Detection (Clean,200 Images)
+| Model | Total Detections | Avg per Image | Median Time per Image
+|---|---|---|---|
+| YOLOv8m | 772 | 3.86 | 32.0ms |
+| YOLOv9m | 765 | 3.82 | 43.8ms |
+| YOLOv10m | 673 | 3.36 | 36.3ms |
+
+*End-to-end time per model() call on a Colab T4 (includes pre- and post-processing). Medians reported because the first image of each run includes GPU warm-up (~3s).
 
 ### Hard Condition Results (100 images each)
 | Condition | YOLOv8m | YOLOv9m | YOLOv10m |
 |---|---|---|---|
-| Clean | 772 | 765 | 673 |
+| Clean (same 100 images) | 391 | 385 | 340 |
 | Low Light | 103 | 106 | 95 |
 | Rain | 351 | 348 | 311 |
 | Fog | 266 | 223 | 205 |
 | Occlusion | 383 | 376 | 338 |
 
-### Performance Drop vs Clean Baseline
+### Performance Drop vs Clean Baseline (same 100 images)
 | Condition | YOLOv8m | YOLOv9m | YOLOv10m |
 |---|---|---|---|
-| Low Light | ~87% drop | ~86% drop | ~86% drop |
-| Fog | ~31% drop | ~42% drop | ~40% drop |
-| Rain | ~55% drop | ~55% drop | ~54% drop |
-| Occlusion | ~50% drop | ~51% drop | ~50% drop |
+| Low Light | ~73.7% drop | ~72.5% drop | ~72.1% drop |
+| Fog | ~32.0% drop | ~42.1% drop | ~39.7% drop |
+| Rain | ~10.2% drop | ~9.6% drop | ~8.5% drop |
+| Occlusion | ~2.0% drop | ~2.3% drop | ~0.6% drop |
 
-### Fine-Tuned YOLOv8m Results (10 epochs, 160 images)
+### Fine-Tuned YOLOv8m Results (10 epochs, 160 train / 40 val images)
 | Metric | Value |
 |---|---|
-| mAP@50 | 0.3856 |
-| mAP@50-95 | 0.2174 |
-| Precision | 0.4846 |
-| Recall | 0.3978 |
+| mAP@50 | 0.375 |
+| mAP@50-95 | 0.211 |
+| Precision | 0.482 |
+| Recall | 0.392 |
 | Inference Speed | 16.7ms |
 
 ### ByteTrack Pedestrian Counting
@@ -121,41 +120,36 @@ ongoing funded research at PSU.
 | Avg per frame | 0.7 |
 | Max in one frame | 2 |
 
+Note: ByteTrack was integrated with YOLOv8m and run on 20 still images processed in sequence. Because these are unrelated photos rather than consecutive video frames, the resulting IDs are not meaningful pedestrian counts. This step only verifies that the tracking pipeline runs end to end; evaluation on real video is future work.
+
 ---
 
 ## Key Findings
 
-**Finding 1 — Low Light is Most Destructive**  
-All three models suffered an 86-87% drop in detections under 
-low-light conditions — by far the most challenging real-world 
-scenario. This directly highlights a critical gap in current 
-pedestrian safety systems.
+**Finding 1 — Low light causes the largest drop.**  
+All three models produced roughly 72–74% fewer person detections under simulated low light than on the same clean images. This is the most challenging condition by a wide margin.
 
-**Finding 2 — YOLOv8m Most Robust Under Fog**  
-YOLOv8m outperformed YOLOv9m by 19% and YOLOv10m by 30% 
-under foggy conditions, suggesting its backbone architecture 
-handles partial visibility better than newer variants.
+**Finding 2 — YOLOv8m held up best under fog.**  
+On the fogged images, YOLOv8m produced 266 detections vs 223 for YOLOv9m (+19%) and 205 for YOLOv10m (+30%). Its drop relative to clean was about 32%, compared with about 40–42% for the newer models.
 
-**Finding 3 — YOLOv9m Marginal Edge in Low Light**  
-YOLOv9m's PGI architecture showed a slight advantage under 
-low-light conditions (106 vs 103 detections), suggesting 
-architectural design choices impact extreme-scenario performance.
+**Finding 3 — Rain and occlusion had small effects.**  
+Detections fell by only about 9–10% under rain and about 0–2% under occlusion. The occlusion patches may often miss the people in the image, so the occlusion result likely reflects the augmentation settings more than true robustness to occlusion.
 
-**Finding 4 — Speed Surprise**  
-Contrary to published benchmarks, YOLOv10m showed no meaningful 
-speed advantage over YOLOv8m (37.2ms vs 37.1ms) while 
-consistently detecting fewer pedestrians across all conditions.
+**Finding 4 — Newer did not mean faster or more detections here.**  
+YOLOv8m had the lowest median inference time and the most detections in most conditions, despite having the most parameters. YOLOv10m showed no meaningful speed advantage over YOLOv8m in practice despite having 36% fewer parameters.
 
-**Finding 5 — Rain & Occlusion Most Survivable**  
-Rain caused only 8-9% performance drop and occlusion nearly 0% — 
-far less damaging than expected. Current YOLO models show 
-natural robustness to partial obstruction and precipitation.
+**Finding 4 — The fine-tuning pipeline works end to end.**
+A 10-epoch run produced mAP@50 of 0.375 on 40 validation images (evaluated on best.pt). Comparing against the pretrained model on the same split is the next step.
 
-**Finding 6 — Fine-Tuning Works**  
-10 epochs of fine-tuning on just 160 pedestrian images achieved 
-mAP@50 of 0.386 and 3x faster inference (16.7ms vs 49ms) — 
-demonstrating the complete pipeline works and would improve 
-significantly with more data and epochs.
+---
+
+## Limitations
+- **No ground-truth evaluation for robustness.** Detection counts can rise from false positives or fall from missed people; mAP, precision, and recall against COCO labels are needed to measure accuracy properly.
+- **Small sample.** 200 clean and 100 per-condition images; no confidence intervals or repeated augumentation seeds.
+- **Synthetic conditions.** Augumentations approximate, but do not reproduce, real night, rain, or for footage
+- **Image selection** uses the first 200 IDs from an unordered set, so the exact subset may differ between runs.
+- **Tracking was not evaluated on real video.** ByteTrack was run on unrelated still images as a pipeline verification only.
+- **No cyclist detection yet,** despite the project's motivation from Prof. Rekhabday's pedestrian and cyclist safety project.
 
 ---
 
@@ -243,12 +237,13 @@ pedestrian-cyclist-detection-yolo/
 
 ## Future Work
 
-- [ ] Train on full EuroCity Persons dataset (35,000+ images)
+- [ ] Evaluate every condition with mAP, precision, and recall against COCO ground truth
+- [ ] Evaluate pretrained YOLOv8m on the fine-tuning validation split for a fair before/after comparison
+- [ ] Use a lower learning rate or frozen backbone to stabilize fine-tuning
+- [ ] Train and test on EuroCity Persons and real night-time footage
+- [ ] Evaluate ByteTrack on real video sequences
+- [ ] Add cyclist detection pipeline
 - [ ] Add Post Encroachment Time (PET) safety metric calculation
-- [ ] Extend to night-time video analysis
-- [ ] Test on actual Portland Metro Area intersection footage
-- [ ] Add cyclist-specific detection pipeline
-- [ ] Compare with DeepSORT vs ByteTrack tracking
 
 ---
 
